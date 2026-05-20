@@ -19,6 +19,8 @@ const SECONDARY_LINES = [
   "고민을 정리합니다",
   "오늘도 만들고",
   "내일도 배웁니다",
+  "그리고 또 만들고",
+  "다시 처음부터",
 ] as const;
 
 const ROTATION_RANGE = 120; // ±60°
@@ -81,11 +83,11 @@ export function LetterCollision() {
     );
 
     const ctx = gsap.context(() => {
-      // (A) Pin only — hero 가 0.75 vh 동안만 viewport 에 머무름.
+      // (A) Pin only — hero 가 0.6 vh 동안만 viewport 에 머무름.
       ScrollTrigger.create({
         trigger: heroSection,
         start: "top top",
-        end: "+=75%",
+        end: "+=60%",
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
@@ -129,19 +131,23 @@ export function LetterCollision() {
           const baseX = (t - 0.5) * vw * 0.98 + vw * 0.06;
           const jitterX = (Math.random() - 0.5) * vw * 0.28;
           const offsetX = baseX + jitterX;
-          // y minimum 은 작게 — secondary 가 viewport 바로 아래에 대기하다가
-          // 스크롤 시 즉시 위로 치고 올라옴.
-          const offsetY = Math.random() * vh * 0.55;
+          // 모든 secondary letter 가 hero bottom 바로 아래 같은 y 라인에서
+          // 대기. absolute positioning 으로 normal-flow 의 wrap 영향을 제거.
+          gsap.set(letter, {
+            position: "absolute",
+            top: 0,
+            left: "50%",
+          });
           tl.fromTo(
             letter,
             {
               x: offsetX,
-              y: offsetY,
+              y: 0,
               rotation: randomRotation() * 0.4,
             },
             {
               x: offsetX,
-              y: offsetY + (1 - speed) * vh * driftBase * 1.6,
+              y: (1 - speed) * vh * driftBase * 1.6,
               rotation,
               ease: "power2.out",
             },
