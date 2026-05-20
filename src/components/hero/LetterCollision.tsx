@@ -5,8 +5,10 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { LetterDisplay } from "./LetterDisplay";
 
-// hero 첫 화면에 보이는 메인 헤드라인 (좌하단 anchor)
-const PRIMARY_LINES = ["웹개발과", "마케팅 둘 다", "하는 김현입니다."] as const;
+// hero 첫 화면에 보이는 메인 헤드라인. 마지막 줄은 "김현" 강조를 위해 세 토막으로.
+const PRIMARY_LINE_1 = "웹개발과";
+const PRIMARY_LINE_2 = "마케팅 둘 다";
+const PRIMARY_LINE_3_PARTS = ["하는 ", "김현", "입니다."] as const; // 가운데 토막만 accent
 // 화면 밖에서 시작 — 마운트 시점에 viewport 전체에 random 분포됨
 const SECONDARY_LINES = ["글을 쓰고", "코드를 짓습니다"] as const;
 
@@ -90,7 +92,7 @@ export function LetterCollision() {
               x: offsetX,
               y: offsetY + (1 - speed) * vh * driftBase,
               rotation,
-              ease: "power2.out",
+              ease: "power2.in",
             },
             0,
           );
@@ -100,7 +102,7 @@ export function LetterCollision() {
             {
               y: () => (1 - speed) * vh * driftBase,
               rotation,
-              ease: "power2.out",
+              ease: "power2.in",
             },
             0,
           );
@@ -125,7 +127,12 @@ export function LetterCollision() {
     return () => ctx.revert();
   }, []);
 
-  const allLines = [...PRIMARY_LINES, ...SECONDARY_LINES];
+  const ariaLabel = [
+    PRIMARY_LINE_1,
+    PRIMARY_LINE_2,
+    PRIMARY_LINE_3_PARTS.join(""),
+    ...SECONDARY_LINES,
+  ].join(" ");
 
   return (
     <div
@@ -137,19 +144,18 @@ export function LetterCollision() {
         lineHeight: 0.96,
       }}
     >
-      <h1
-        aria-label={allLines.join(" ")}
-        className="m-0 p-0 font-inherit"
-      >
-        {PRIMARY_LINES.map((line, idx) => (
-          <span
-            key={idx}
-            aria-hidden
-            className="flex flex-wrap items-baseline justify-start"
-          >
-            <LetterDisplay word={line} />
-          </span>
-        ))}
+      <h1 aria-label={ariaLabel} className="m-0 p-0 font-inherit">
+        <span aria-hidden className="flex flex-wrap items-baseline justify-start">
+          <LetterDisplay word={PRIMARY_LINE_1} />
+        </span>
+        <span aria-hidden className="flex flex-wrap items-baseline justify-start">
+          <LetterDisplay word={PRIMARY_LINE_2} />
+        </span>
+        <span aria-hidden className="flex flex-wrap items-baseline justify-start">
+          <LetterDisplay word={PRIMARY_LINE_3_PARTS[0]} />
+          <LetterDisplay word={PRIMARY_LINE_3_PARTS[1]} highlight />
+          <LetterDisplay word={PRIMARY_LINE_3_PARTS[2]} />
+        </span>
       </h1>
 
       {/*

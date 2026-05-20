@@ -13,8 +13,9 @@ export function Hero() {
       </div>
 
       <div className="container-wide relative flex-1 flex flex-col justify-end">
-        {/* letters anchored bottom-left */}
-        <div className="pb-10 md:pb-16">
+        {/* letters anchored bottom-left — pulled past container padding so
+            they sit closer to the viewport edge. */}
+        <div className="pb-10 md:pb-16 -ml-3 sm:-ml-6 md:-ml-8 xl:-ml-10">
           <LetterCollision />
         </div>
       </div>

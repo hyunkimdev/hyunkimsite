@@ -12,9 +12,11 @@ interface LetterDisplayProps {
    * which get a random viewport-wide starting position at mount.
    */
   secondary?: boolean;
+  /** Paints these glyphs in the accent color. */
+  highlight?: boolean;
 }
 
-export function LetterDisplay({ word, secondary }: LetterDisplayProps) {
+export function LetterDisplay({ word, secondary, highlight }: LetterDisplayProps) {
   // Unicode-aware split (한글 음절은 BMP single code point라 split('')도
   // 안전하지만, 향후 이모지/조합 문자 섞일 가능성 대비)
   const chars = Array.from(word);
@@ -37,6 +39,11 @@ export function LetterDisplay({ word, secondary }: LetterDisplayProps) {
             key={i}
             className="letter inline-block leading-none will-change-transform"
             data-secondary={secondary ? "true" : undefined}
+            style={
+              highlight
+                ? { color: "var(--color-accent-600)" }
+                : undefined
+            }
           >
             {char}
           </span>
