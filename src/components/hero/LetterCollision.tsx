@@ -12,10 +12,11 @@ const SECONDARY_LINES = ["글을 쓰고", "코드를 짓습니다"] as const;
 
 // ±60° 회전 — 글자가 강하게 흩어지는 느낌
 const ROTATION_RANGE = 120;
-// 대칭 speed range — (1 - speed) 가 음수/양수 모두 큰 값을 가져서 위/아래로
-// 동등하게 흩어짐. 1.0 을 중심으로 ±0.8.
-const SPEED_MIN = 0.2;
-const SPEED_RANGE = 1.6;
+// 모든 speed > 1 → (1 - speed) 가 항상 음수 → letter 는 무조건 위로 이동.
+// 속도(이동 거리)는 다양하지만 방향은 통일.
+// slowest (1.4) 도 y = -0.4 × vh × drift 만큼은 올라가서 viewport 상단을 넘김.
+const SPEED_MIN = 1.4;
+const SPEED_RANGE = 0.9; // → 1.4 ~ 2.3
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
