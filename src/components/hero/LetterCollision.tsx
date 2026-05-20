@@ -88,7 +88,9 @@ export function LetterCollision() {
           trigger: document.documentElement,
           start: 0,
           end: () => window.innerHeight * 2.2,
-          scrub: true,
+          // 원본 레퍼런스 방식 — 즉시 동기화(true) 대신 0.5s 스무딩.
+          // 휠을 굴리면 letter 가 부드럽게 lerp 으로 따라옴.
+          scrub: 0.5,
           invalidateOnRefresh: true,
         },
       });
@@ -124,7 +126,7 @@ export function LetterCollision() {
               x: offsetX,
               y: offsetY + (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "sine.in",
+              ease: "power2.out",
             },
             0,
           );
@@ -134,7 +136,7 @@ export function LetterCollision() {
             {
               y: () => (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "sine.in",
+              ease: "power2.out",
             },
             0,
           );
