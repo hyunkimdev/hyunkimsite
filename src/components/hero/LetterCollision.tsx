@@ -7,16 +7,13 @@ import { LetterDisplay } from "./LetterDisplay";
 
 // hero 첫 화면에 보이는 메인 헤드라인 (좌하단 anchor)
 const PRIMARY_LINES = ["웹개발과", "마케팅 둘 다", "하는 김현입니다."] as const;
-// hero 아래에 숨겨져 있다가 스크롤 시 letter explosion 으로 위로 떠올라 보임
+// 화면 밖에서 시작 — 마운트 시점에 viewport 전체에 random 분포됨
 const SECONDARY_LINES = ["글을 쓰고", "코드를 짓습니다"] as const;
 
-// ±60° 회전 — 글자가 강하게 흩어지는 느낌
-const ROTATION_RANGE = 120;
-// 모든 speed > 1 → (1 - speed) 가 항상 음수 → letter 는 무조건 위로 이동.
-// 속도(이동 거리)는 다양하지만 방향은 통일.
-// slowest (1.4) 도 y = -0.4 × vh × drift 만큼은 올라가서 viewport 상단을 넘김.
-const SPEED_MIN = 1.4;
-const SPEED_RANGE = 0.9; // → 1.4 ~ 2.3
+const ROTATION_RANGE = 120; // ±60°
+// 모든 speed > 1 → (1 - speed) 항상 음수 → letter 무조건 위로
+const SPEED_MIN = 1.3;
+const SPEED_RANGE = 0.6; // → 1.3 ~ 1.9
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
@@ -32,7 +29,7 @@ function prefersReducedMotion(): boolean {
 }
 
 export function LetterCollision() {
-  const rootRef = useRef<HTMLHeadingElement>(null);
+  const rootRef = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
     const root = rootRef.current;
@@ -41,30 +38,26 @@ export function LetterCollision() {
 
     gsap.registerPlugin(ScrollTrigger);
 
-    // dev-only: expose for debugging via preview_eval
     if (process.env.NODE_ENV !== "production") {
       (window as unknown as { __gsap: typeof gsap; __ST: typeof ScrollTrigger }).__gsap = gsap;
       (window as unknown as { __gsap: typeof gsap; __ST: typeof ScrollTrigger }).__ST = ScrollTrigger;
     }
 
-    // Hero <section>을 trigger로 — pin 효과를 위해
     const heroSection = root.closest<HTMLElement>("[data-hero]");
     if (!heroSection) return;
 
     const letters = root.querySelectorAll<HTMLElement>(".letter");
     const isMobile = window.innerWidth < 768;
-    // viewport 3.6 배 거리. 살짝만 스크롤해도 letter 가 화면 전체에 흩뿌려지고,
-    // pin 이 끝나는 시점엔 이미 viewport 한참 밖이라 멈춤이 안 보임.
-    const driftBase = isMobile ? 2.2 : 3.6;
+    // 조금 약하게 — letter 가 viewport 에서 자연스럽게 빠지는 속도
+    const driftBase = isMobile ? 1.6 : 2.3;
 
     const ctx = gsap.context(() => {
-      // 단일 ScrollTrigger 에 pin + scrub timeline 통합.
-      // (분리하면 두 번째 trigger 가 pin-spacer 뒤부터 측정되는 quirk 발생)
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: heroSection,
           start: "top top",
-          end: "+=100%",
+          // hero 짧게 — letter 흩어짐이 너무 길게 느껴지지 않도록
+          end: "+=75%",
           pin: true,
           pinSpacing: true,
           scrub: true,
@@ -72,26 +65,49 @@ export function LetterCollision() {
         },
       });
 
+      const vh = window.innerHeight;
+      const vw = window.innerWidth;
+
       letters.forEach((letter) => {
         const speed = randomSpeed();
         letter.dataset.speed = speed.toFixed(3);
         const rotation = randomRotation() * (isMobile ? 0.6 : 1);
+        const isSecondary = letter.dataset.secondary === "true";
 
-        tl.to(
-          letter,
-          {
-            y: () => (1 - speed) * window.innerHeight * driftBase,
-            rotation,
-            // power2.out — 처음에 강한 폭발, 후반은 감속 (멈추지는 않음).
-            // drift 가 매우 커서 progress 0.5 만 되어도 letter 들은 거의
-            // viewport 밖.
-            ease: "power2.out",
-          },
-          0,
-        );
+        if (isSecondary) {
+          // hero 아래에 normal flow 로 깔려 있는 위치에서, viewport 전체로
+          // random 하게 흩어 둠. (-45vw ~ +45vw, 0 ~ +60vh)
+          const offsetX = (Math.random() - 0.5) * vw * 0.9;
+          const offsetY = Math.random() * vh * 0.6;
+          tl.fromTo(
+            letter,
+            {
+              x: offsetX,
+              y: offsetY,
+              rotation: randomRotation() * 0.4,
+            },
+            {
+              x: offsetX,
+              y: offsetY + (1 - speed) * vh * driftBase,
+              rotation,
+              ease: "power2.out",
+            },
+            0,
+          );
+        } else {
+          tl.to(
+            letter,
+            {
+              y: () => (1 - speed) * vh * driftBase,
+              rotation,
+              ease: "power2.out",
+            },
+            0,
+          );
+        }
       });
 
-      // layout 완료 후 ScrollTrigger 가 정확한 값을 잡도록 다단계 refresh
+      // layout/font 안정화 후 ScrollTrigger 가 정확한 값을 잡도록 다단계 refresh
       const refreshNow = () => ScrollTrigger.refresh();
       requestAnimationFrame(() => {
         requestAnimationFrame(refreshNow);
@@ -137,19 +153,19 @@ export function LetterCollision() {
       </h1>
 
       {/*
-        Secondary 라인 — hero 첫 화면 아래에 깔려 있어 처음엔 안 보임.
-        스크롤 시 모든 .letter 가 위로 떠오르면서 함께 viewport 로 진입.
+        Secondary container — hero 아래에 깔려 있으나, 각 letter 가 마운트 시점에
+        viewport 전체로 random 하게 흩어진다.
       */}
       <div
         aria-hidden
-        className="absolute left-0 right-0 top-full mt-[0.4em]"
+        className="absolute left-0 right-0 top-full pointer-events-none"
       >
         {SECONDARY_LINES.map((line, idx) => (
           <span
             key={idx}
             className="flex flex-wrap items-baseline justify-start"
           >
-            <LetterDisplay word={line} />
+            <LetterDisplay word={line} secondary />
           </span>
         ))}
       </div>

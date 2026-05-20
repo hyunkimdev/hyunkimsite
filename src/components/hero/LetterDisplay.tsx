@@ -7,9 +7,14 @@
 
 interface LetterDisplayProps {
   word: string;
+  /**
+   * Marks these glyphs as belonging to the secondary (below-the-fold) lines,
+   * which get a random viewport-wide starting position at mount.
+   */
+  secondary?: boolean;
 }
 
-export function LetterDisplay({ word }: LetterDisplayProps) {
+export function LetterDisplay({ word, secondary }: LetterDisplayProps) {
   // Unicode-aware split (한글 음절은 BMP single code point라 split('')도
   // 안전하지만, 향후 이모지/조합 문자 섞일 가능성 대비)
   const chars = Array.from(word);
@@ -31,6 +36,7 @@ export function LetterDisplay({ word }: LetterDisplayProps) {
           <span
             key={i}
             className="letter inline-block leading-none will-change-transform"
+            data-secondary={secondary ? "true" : undefined}
           >
             {char}
           </span>
