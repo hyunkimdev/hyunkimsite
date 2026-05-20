@@ -1,6 +1,7 @@
 import { hero } from "@/content/copy";
 import { Button } from "@/components/ui/Button";
 import { GradientMesh } from "./GradientMesh";
+import { LetterCollision } from "./LetterCollision";
 
 export function Hero() {
   return (
@@ -11,8 +12,8 @@ export function Hero() {
       </div>
 
       <div className="container-wide relative">
-        <div className="pt-20 md:pt-24 pb-12 max-w-[760px]">
-          <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-medium pt-10 md:pt-12 pb-6 md:pb-8">
+        <div className="pt-20 md:pt-24 pb-12">
+          <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-medium pt-10 md:pt-12 pb-6 md:pb-8 max-w-[760px]">
             <span className="text-[var(--color-ink-700)]">
               {hero.badgeLabel}
             </span>
@@ -21,17 +22,7 @@ export function Hero() {
             </span>
           </div>
 
-          <h1
-            className="leading-[1.06] tracking-[-0.025em] font-medium"
-            style={{ fontSize: "clamp(34px, 5.6vw, 58px)" }}
-          >
-            <span className="text-[var(--color-ink-900)]">
-              {hero.headline.lead}
-            </span>{" "}
-            <span className="text-[var(--color-ink-300)]">
-              {hero.headline.rest}
-            </span>
-          </h1>
+          <LetterCollision />
 
           <div className="flex flex-wrap items-center gap-3 mt-7 md:mt-9">
             <Button size="md">{hero.ctaPrimary}</Button>
