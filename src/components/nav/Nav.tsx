@@ -28,19 +28,19 @@ export function Nav() {
         and scrolls away with the hero — only visible at the very top.
       */}
       <header className="absolute inset-x-0 top-0 z-40 bg-transparent">
-        <nav className="container-wide flex items-center h-[60px] gap-6">
+        <nav className="container-wide flex items-center h-[88px] gap-8">
           <a href="#" aria-label="Home" className="shrink-0">
             <Logo />
           </a>
 
-          <ul className="hidden lg:flex items-center gap-1 ml-2">
+          <ul className="hidden lg:flex items-center gap-2 ml-4">
             {nav.links.map((link) => (
               <li key={link.label}>
-                <button className="group inline-flex items-center gap-1 px-3 h-9 rounded-md text-[14px] font-medium text-[var(--color-ink-700)] hover:text-[var(--color-ink-900)] hover:bg-[var(--color-surface-tint-2)] transition-colors">
+                <button className="group inline-flex items-center gap-1.5 px-4 h-11 rounded-md text-[16px] font-medium text-[var(--color-ink-700)] hover:text-[var(--color-ink-900)] hover:bg-[var(--color-surface-tint-2)] transition-colors">
                   {link.label}
                   {link.hasMenu && (
                     <ChevronDown
-                      className="h-3.5 w-3.5 -mr-0.5 text-[var(--color-ink-300)] group-hover:rotate-180 transition-transform duration-200"
+                      className="h-4 w-4 -mr-0.5 text-[var(--color-ink-300)] group-hover:rotate-180 transition-transform duration-200"
                       strokeWidth={2.5}
                     />
                   )}
@@ -48,24 +48,24 @@ export function Nav() {
               </li>
             ))}
             <li className="ml-2">
-              <button className="inline-flex items-center gap-1.5 px-3 h-9 rounded-md text-[14px] font-medium text-[var(--color-accent-600)] hover:bg-[var(--color-accent-50)] transition-colors">
-                <Wand2 className="h-3.5 w-3.5" strokeWidth={2.5} />
+              <button className="inline-flex items-center gap-2 px-4 h-11 rounded-md text-[16px] font-medium text-[var(--color-accent-600)] hover:bg-[var(--color-accent-50)] transition-colors">
+                <Wand2 className="h-4 w-4" strokeWidth={2.5} />
                 {nav.guideMe}
               </button>
             </li>
           </ul>
 
-          <div className="ml-auto flex items-center gap-2">
-            <button className="hidden md:inline-flex items-center px-3 h-8 rounded-full text-[14px] font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-tint-2)] transition-colors">
+          <div className="ml-auto flex items-center gap-3">
+            <button className="hidden md:inline-flex items-center px-4 h-10 rounded-full text-[16px] font-medium text-[var(--color-ink-700)] hover:bg-[var(--color-surface-tint-2)] transition-colors">
               {nav.signIn}
             </button>
-            <Button>{nav.contact}</Button>
+            <Button size="md" className="h-10 px-5 text-[15px]">{nav.contact}</Button>
             <button
               aria-label="Open menu"
               onClick={() => setMobileOpen(true)}
-              className="lg:hidden inline-flex items-center justify-center w-9 h-9 rounded-md text-[var(--color-ink-700)] hover:bg-[var(--color-surface-tint-2)]"
+              className="lg:hidden inline-flex items-center justify-center w-10 h-10 rounded-md text-[var(--color-ink-700)] hover:bg-[var(--color-surface-tint-2)]"
             >
-              <Menu className="h-5 w-5" />
+              <Menu className="h-6 w-6" />
             </button>
           </div>
         </nav>

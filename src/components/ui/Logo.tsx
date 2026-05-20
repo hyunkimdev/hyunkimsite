@@ -19,7 +19,7 @@ export function Logo({ className, tone = "dark" }: LogoProps) {
       )}
       style={{ color }}
     >
-      <span className="text-[22px] leading-none">Hyun Kim</span>
+      <span className="text-[28px] leading-none">Hyun Kim</span>
     </span>
   );
 }
