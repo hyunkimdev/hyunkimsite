@@ -6,18 +6,9 @@ import { motion } from "framer-motion";
 import { nav } from "@/content/copy";
 import { Button } from "@/components/ui/Button";
 import { Logo } from "@/components/ui/Logo";
-import { cn } from "@/lib/cn";
 
 export function Nav() {
-  const [scrolled, setScrolled] = useState(false);
   const [mobileOpen, setMobileOpen] = useState(false);
-
-  useEffect(() => {
-    const onScroll = () => setScrolled(window.scrollY > 8);
-    onScroll();
-    window.addEventListener("scroll", onScroll, { passive: true });
-    return () => window.removeEventListener("scroll", onScroll);
-  }, []);
 
   useEffect(() => {
     if (mobileOpen) {
@@ -32,14 +23,11 @@ export function Nav() {
 
   return (
     <>
-      <header
-        className={cn(
-          "fixed inset-x-0 top-0 z-50 transition-colors duration-200",
-          scrolled
-            ? "bg-white/85 backdrop-blur-md border-b border-[var(--color-border-subtle)]"
-            : "bg-transparent",
-        )}
-      >
+      {/*
+        Absolute positioning so the nav sits in the natural document flow
+        and scrolls away with the hero — only visible at the very top.
+      */}
+      <header className="absolute inset-x-0 top-0 z-40 bg-transparent">
         <nav className="container-wide flex items-center h-[60px] gap-6">
           <a href="#" aria-label="Home" className="shrink-0">
             <Logo />
