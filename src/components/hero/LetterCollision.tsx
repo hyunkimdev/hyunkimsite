@@ -9,8 +9,17 @@ import { LetterDisplay } from "./LetterDisplay";
 const PRIMARY_LINE_1 = "웹개발과";
 const PRIMARY_LINE_2 = "마케팅 둘 다";
 const PRIMARY_LINE_3_PARTS = ["하는 ", "김현", "입니다."] as const; // 가운데 토막만 accent
-// 화면 밖에서 시작 — 마운트 시점에 viewport 전체에 random 분포됨
-const SECONDARY_LINES = ["글을 쓰고", "코드를 짓습니다"] as const;
+// 화면 밖에서 시작 — 마운트 시점에 viewport 전체에 random 분포됨.
+// 글자 수가 많을수록 viewport 가 더 풍부하게 채워짐.
+const SECONDARY_LINES = [
+  "글을 쓰고",
+  "코드를 짓고",
+  "디자인을 다듬으며",
+  "사람을 만나고",
+  "고민을 정리합니다",
+  "오늘도 만들고",
+  "내일도 배웁니다",
+] as const;
 
 const ROTATION_RANGE = 120; // ±60°
 // 모든 speed > 1 → (1 - speed) 항상 음수 → letter 무조건 위로
@@ -54,14 +63,25 @@ export function LetterCollision() {
     const driftBase = isMobile ? 1.6 : 2.3;
 
     const ctx = gsap.context(() => {
+      // (A) Pin only — hero 가 0.75 vh 동안만 viewport 에 머무름.
+      ScrollTrigger.create({
+        trigger: heroSection,
+        start: "top top",
+        end: "+=75%",
+        pin: true,
+        pinSpacing: true,
+        invalidateOnRefresh: true,
+      });
+
+      // (B) Letter motion — pin 보다 훨씬 긴 range. unpin 후에도 letter 는
+      // 다음 섹션이 완전히 진입할 때까지 계속 움직임. trigger 를
+      // document.documentElement 로 잡아야 pin-spacer 가 만든 measurement
+      // shift 의 영향을 받지 않고 scroll 0 부터 정확하게 매핑된다.
       const tl = gsap.timeline({
         scrollTrigger: {
-          trigger: heroSection,
-          start: "top top",
-          // hero 짧게 — letter 흩어짐이 너무 길게 느껴지지 않도록
-          end: "+=75%",
-          pin: true,
-          pinSpacing: true,
+          trigger: document.documentElement,
+          start: 0,
+          end: () => window.innerHeight * 2.2,
           scrub: true,
           invalidateOnRefresh: true,
         },
@@ -77,10 +97,10 @@ export function LetterCollision() {
         const isSecondary = letter.dataset.secondary === "true";
 
         if (isSecondary) {
-          // hero 아래에 normal flow 로 깔려 있는 위치에서, viewport 전체로
-          // random 하게 흩어 둠. (-45vw ~ +45vw, 0 ~ +60vh)
-          const offsetX = (Math.random() - 0.5) * vw * 0.9;
-          const offsetY = Math.random() * vh * 0.6;
+          // viewport 전체로 random 분포. y 의 minimum 을 키워서 처음엔
+          // viewport 아래로 충분히 빠져 있게 한다 (첫 화면 미노출).
+          const offsetX = (Math.random() - 0.5) * vw * 0.95;
+          const offsetY = vh * 0.25 + Math.random() * vh * 0.95;
           tl.fromTo(
             letter,
             {
@@ -90,9 +110,9 @@ export function LetterCollision() {
             },
             {
               x: offsetX,
-              y: offsetY + (1 - speed) * vh * driftBase,
+              y: offsetY + (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "power2.in",
+              ease: "power1.in",
             },
             0,
           );
@@ -100,9 +120,9 @@ export function LetterCollision() {
           tl.to(
             letter,
             {
-              y: () => (1 - speed) * vh * driftBase,
+              y: () => (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "power2.in",
+              ease: "power1.in",
             },
             0,
           );
@@ -160,11 +180,13 @@ export function LetterCollision() {
 
       {/*
         Secondary container — hero 아래에 깔려 있으나, 각 letter 가 마운트 시점에
-        viewport 전체로 random 하게 흩어진다.
+        viewport 전체로 random 하게 흩어진다. top 을 더 아래로 깔아두어 첫
+        화면에 secondary letter 가 새어 들어오지 않게 한다.
       */}
       <div
         aria-hidden
-        className="absolute left-0 right-0 top-full pointer-events-none"
+        className="absolute left-0 right-0 pointer-events-none"
+        style={{ top: "calc(100% + 25vh)" }}
       >
         {SECONDARY_LINES.map((line, idx) => (
           <span

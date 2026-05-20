@@ -12,10 +12,10 @@ export function Hero() {
         <GradientMesh />
       </div>
 
-      <div className="container-wide relative flex-1 flex flex-col justify-end">
-        {/* letters anchored bottom-left — pulled past container padding so
-            they sit closer to the viewport edge. */}
-        <div className="pb-10 md:pb-16 -ml-3 sm:-ml-6 md:-ml-8 xl:-ml-10">
+      {/* letters anchored bottom-left — bypass container padding to sit
+          very close to the viewport edge. nav stays inside container. */}
+      <div className="relative flex-1 flex flex-col justify-end">
+        <div className="pl-4 sm:pl-5 md:pl-6 pb-10 md:pb-16">
           <LetterCollision />
         </div>
       </div>
