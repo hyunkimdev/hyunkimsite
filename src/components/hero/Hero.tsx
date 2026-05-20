@@ -5,26 +5,32 @@ import { LetterCollision } from "./LetterCollision";
 
 export function Hero() {
   return (
-    <section className="relative pt-[60px] overflow-hidden">
+    <section
+      data-hero
+      className="relative min-h-screen flex flex-col overflow-hidden pt-[60px]"
+    >
       {/* Mesh constrained to the right portion so text stays readable. */}
-      <div className="absolute top-0 right-0 w-full md:w-[58%] h-[560px] md:h-[660px] pointer-events-none opacity-60 md:opacity-100">
+      <div className="absolute top-0 right-0 w-full md:w-[58%] h-full pointer-events-none opacity-60 md:opacity-100">
         <GradientMesh />
       </div>
 
-      <div className="container-wide relative">
-        <div className="pt-20 md:pt-24 pb-12">
-          <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-medium pt-10 md:pt-12 pb-6 md:pb-8 max-w-[760px]">
-            <span className="text-[var(--color-ink-700)]">
-              {hero.badgeLabel}
-            </span>
-            <span className="shimmer-text font-semibold">
-              {hero.badgeValue}
-            </span>
-          </div>
+      <div className="container-wide relative flex-1 flex flex-col">
+        {/* badge — top */}
+        <div className="flex flex-wrap items-center gap-1.5 text-[13px] font-medium pt-12 md:pt-16 max-w-[760px]">
+          <span className="text-[var(--color-ink-700)]">
+            {hero.badgeLabel}
+          </span>
+          <span className="shimmer-text font-semibold">{hero.badgeValue}</span>
+        </div>
 
+        {/* spacer pushes letters + CTA toward the bottom-left */}
+        <div className="flex-1" />
+
+        {/* letters + CTA — bottom-left */}
+        <div className="pb-10 md:pb-16">
           <LetterCollision />
 
-          <div className="flex flex-wrap items-center gap-3 mt-7 md:mt-9">
+          <div className="flex flex-wrap items-center gap-3 mt-8 md:mt-10">
             <Button size="md">{hero.ctaPrimary}</Button>
             <Button
               variant="secondary"
