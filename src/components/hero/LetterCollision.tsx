@@ -24,13 +24,25 @@ const SECONDARY_LINES = [
 const ROTATION_RANGE = 120; // ±60°
 // 모든 speed > 1 → (1 - speed) 항상 음수 → letter 무조건 위로
 const SPEED_MIN = 1.3;
-const SPEED_RANGE = 0.6; // → 1.3 ~ 1.9
+const SPEED_RANGE = 0.6; // primary → 1.3 ~ 1.9
+
+// secondary 의 ~35% 는 super-fast 로 — primary letter 들을 추월하면서 아래에서
+// 위로 치고 올라오는 인상을 줌. 나머지는 primary 와 비슷한 속도.
+const FAST_SECONDARY_RATIO = 0.35;
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
 }
 
 function randomSpeed() {
+  return SPEED_MIN + Math.random() * SPEED_RANGE;
+}
+
+function randomSecondarySpeed() {
+  if (Math.random() < FAST_SECONDARY_RATIO) {
+    // 빠른 그룹: 2.4 ~ 3.2 — primary 의 1.3 ~ 1.9 보다 명백히 빠름
+    return 2.4 + Math.random() * 0.8;
+  }
   return SPEED_MIN + Math.random() * SPEED_RANGE;
 }
 
@@ -99,10 +111,10 @@ export function LetterCollision() {
       const vw = window.innerWidth;
 
       letters.forEach((letter) => {
-        const speed = randomSpeed();
+        const isSecondary = letter.dataset.secondary === "true";
+        const speed = isSecondary ? randomSecondarySpeed() : randomSpeed();
         letter.dataset.speed = speed.toFixed(3);
         const rotation = randomRotation() * (isMobile ? 0.6 : 1);
-        const isSecondary = letter.dataset.secondary === "true";
 
         if (isSecondary) {
           // viewport 폭에 균등 분포 + 약간의 jitter — random 만 쓰면 한쪽으로
