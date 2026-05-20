@@ -40,8 +40,8 @@ function randomSpeed() {
 
 function randomSecondarySpeed() {
   if (Math.random() < FAST_SECONDARY_RATIO) {
-    // 빠른 그룹: 2.4 ~ 3.2 — primary 의 1.3 ~ 1.9 보다 명백히 빠름
-    return 2.4 + Math.random() * 0.8;
+    // 빠른 그룹: 2.2 ~ 2.7 — primary 의 1.3 ~ 1.9 보다 명백히 빠르되 과하지 않게
+    return 2.2 + Math.random() * 0.5;
   }
   return SPEED_MIN + Math.random() * SPEED_RANGE;
 }
