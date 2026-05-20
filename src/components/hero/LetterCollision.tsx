@@ -62,6 +62,12 @@ export function LetterCollision() {
     // 조금 약하게 — letter 가 viewport 에서 자연스럽게 빠지는 속도
     const driftBase = isMobile ? 1.6 : 2.3;
 
+    // secondary letter 를 미리 모아 두면 viewport 폭에 균등 분포 + jitter 로
+    // 흩어 둘 수 있다 (random 만 쓰면 letter 수가 적어 한쪽으로 쏠리는 경우 있음).
+    const secondaryArray = Array.from(letters).filter(
+      (l) => l.dataset.secondary === "true",
+    );
+
     const ctx = gsap.context(() => {
       // (A) Pin only — hero 가 0.75 vh 동안만 viewport 에 머무름.
       ScrollTrigger.create({
@@ -97,10 +103,16 @@ export function LetterCollision() {
         const isSecondary = letter.dataset.secondary === "true";
 
         if (isSecondary) {
-          // viewport 전체로 random 분포. y 의 minimum 을 키워서 처음엔
-          // viewport 아래로 충분히 빠져 있게 한다 (첫 화면 미노출).
-          const offsetX = (Math.random() - 0.5) * vw * 0.95;
-          const offsetY = vh * 0.25 + Math.random() * vh * 0.95;
+          // viewport 폭에 균등 분포 + 약간의 jitter — random 만 쓰면 한쪽으로
+          // 쏠릴 수 있어 index 기반 spacing 을 깐다.
+          const secondaryIndex = secondaryArray.indexOf(letter);
+          const t = (secondaryIndex + 0.5) / secondaryArray.length;
+          const baseX = (t - 0.5) * vw * 0.96;
+          const jitterX = (Math.random() - 0.5) * vw * 0.18;
+          const offsetX = baseX + jitterX;
+          // y minimum 은 작게 — secondary 가 viewport 바로 아래에 대기하다가
+          // 스크롤 시 즉시 위로 치고 올라옴.
+          const offsetY = Math.random() * vh * 0.55;
           tl.fromTo(
             letter,
             {
@@ -112,7 +124,7 @@ export function LetterCollision() {
               x: offsetX,
               y: offsetY + (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "power1.in",
+              ease: "sine.in",
             },
             0,
           );
@@ -122,7 +134,7 @@ export function LetterCollision() {
             {
               y: () => (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "power1.in",
+              ease: "sine.in",
             },
             0,
           );
@@ -179,14 +191,12 @@ export function LetterCollision() {
       </h1>
 
       {/*
-        Secondary container — hero 아래에 깔려 있으나, 각 letter 가 마운트 시점에
-        viewport 전체로 random 하게 흩어진다. top 을 더 아래로 깔아두어 첫
-        화면에 secondary letter 가 새어 들어오지 않게 한다.
+        Secondary container — hero 바로 아래에 대기. 스크롤 시작 즉시
+        letter 들이 위로 치고 올라옴.
       */}
       <div
         aria-hidden
-        className="absolute left-0 right-0 pointer-events-none"
-        style={{ top: "calc(100% + 25vh)" }}
+        className="absolute left-0 right-0 top-full pointer-events-none"
       >
         {SECONDARY_LINES.map((line, idx) => (
           <span
