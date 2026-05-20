@@ -14,9 +14,11 @@ interface LetterDisplayProps {
   secondary?: boolean;
   /** Paints these glyphs in the accent color. */
   highlight?: boolean;
+  /** Keeps these glyphs above the surrounding letter field. */
+  priority?: boolean;
 }
 
-export function LetterDisplay({ word, secondary, highlight }: LetterDisplayProps) {
+export function LetterDisplay({ word, secondary, highlight, priority }: LetterDisplayProps) {
   // Unicode-aware split (한글 음절은 BMP single code point라 split('')도
   // 안전하지만, 향후 이모지/조합 문자 섞일 가능성 대비)
   const chars = Array.from(word);
@@ -39,9 +41,14 @@ export function LetterDisplay({ word, secondary, highlight }: LetterDisplayProps
             key={i}
             className="letter inline-block leading-none will-change-transform"
             data-secondary={secondary ? "true" : undefined}
+            data-priority-letter={priority ? i : undefined}
             style={
-              highlight
-                ? { color: "var(--color-accent-600)" }
+              highlight || priority
+                ? {
+                    color: highlight ? "var(--color-accent-600)" : undefined,
+                    position: priority ? "relative" : undefined,
+                    zIndex: priority ? 50 : undefined,
+                  }
                 : undefined
             }
           >

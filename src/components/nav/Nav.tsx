@@ -28,7 +28,7 @@ export function Nav() {
         and scrolls away with the hero — only visible at the very top.
       */}
       <header className="absolute inset-x-0 top-0 z-40 bg-transparent">
-        <nav className="container-wide flex items-center h-[88px] gap-8">
+        <nav className="flex h-[88px] w-full items-center gap-8 px-5 sm:px-8 lg:px-12 2xl:px-16">
           <a href="#" aria-label="Home" className="shrink-0">
             <Logo />
           </a>

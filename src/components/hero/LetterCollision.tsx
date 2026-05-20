@@ -27,25 +27,28 @@ const ROTATION_RANGE = 120; // ±60°
 // 모든 speed > 1 → (1 - speed) 항상 음수 → letter 무조건 위로
 const SPEED_MIN = 1.3;
 const SPEED_RANGE = 0.6; // primary → 1.3 ~ 1.9
-
-// secondary 의 ~35% 는 super-fast 로 — primary letter 들을 추월하면서 아래에서
-// 위로 치고 올라오는 인상을 줌. 나머지는 primary 와 비슷한 속도.
-const FAST_SECONDARY_RATIO = 0.35;
+const SECONDARY_SPEED_BANDS = [1.5, 1.78, 2.06, 2.36, 2.68] as const;
+const PRIORITY_NAME_SPEEDS = [1.28, 1.24] as const; // 김이 현보다 아주 살짝 빠르게
+const PRIORITY_ROTATION_RANGE = 34;
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
+}
+
+function speedFromBand(bands: readonly number[], index: number, jitter = 0.08) {
+  const band = bands[index % bands.length];
+  return band + (Math.random() - 0.5) * jitter;
 }
 
 function randomSpeed() {
   return SPEED_MIN + Math.random() * SPEED_RANGE;
 }
 
-function randomSecondarySpeed() {
-  if (Math.random() < FAST_SECONDARY_RATIO) {
-    // 빠른 그룹: 2.2 ~ 2.7 — primary 의 1.3 ~ 1.9 보다 명백히 빠르되 과하지 않게
-    return 2.2 + Math.random() * 0.5;
-  }
-  return SPEED_MIN + Math.random() * SPEED_RANGE;
+function priorityNameSpeed(index: number) {
+  return (
+    PRIORITY_NAME_SPEEDS[index] ??
+    PRIORITY_NAME_SPEEDS[PRIORITY_NAME_SPEEDS.length - 1]
+  );
 }
 
 function prefersReducedMotion(): boolean {
@@ -83,11 +86,11 @@ export function LetterCollision() {
     );
 
     const ctx = gsap.context(() => {
-      // (A) Pin only — hero 가 0.6 vh 동안만 viewport 에 머무름.
+      // (A) Pin only — hero 가 0.44 vh 동안만 viewport 에 머무름.
       ScrollTrigger.create({
         trigger: heroSection,
         start: "top top",
-        end: "+=60%",
+        end: "+=44%",
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
@@ -114,26 +117,40 @@ export function LetterCollision() {
 
       letters.forEach((letter) => {
         const isSecondary = letter.dataset.secondary === "true";
+        const priorityLetterIndex = letter.dataset.priorityLetter;
+        const isPriority = priorityLetterIndex !== undefined;
         const isPeriod = letter.textContent === ".";
-        let speed = isSecondary ? randomSecondarySpeed() : randomSpeed();
+        const secondaryIndex = secondaryArray.indexOf(letter);
+        let speed = isSecondary
+          ? speedFromBand(SECONDARY_SPEED_BANDS, secondaryIndex, 0.12)
+          : randomSpeed();
+        if (isPriority) {
+          speed = priorityNameSpeed(Number(priorityLetterIndex));
+        }
         // 마침표는 항상 빠른 그룹에 — primary 끝에서 한 발 먼저 치고 빠짐
-        if (isPeriod && !isSecondary) {
+        if (isPeriod && !isSecondary && !isPriority) {
           speed = 2.2 + Math.random() * 0.5;
         }
         letter.dataset.speed = speed.toFixed(3);
-        const rotation = randomRotation() * (isMobile ? 0.6 : 1);
+        const rotation = isPriority
+          ? Math.random() * PRIORITY_ROTATION_RANGE - PRIORITY_ROTATION_RANGE / 2
+          : randomRotation() * (isMobile ? 0.6 : 1);
 
         if (isSecondary) {
-          // viewport 폭에 균등 분포 + jitter — center 를 살짝 우측으로 옮겨
-          // 초반 스크롤에서도 우측이 비지 않도록.
-          const secondaryIndex = secondaryArray.indexOf(letter);
-          const t = (secondaryIndex + 0.5) / secondaryArray.length;
-          const baseX = (t - 0.5) * vw * 0.98 + vw * 0.06;
-          const jitterX = (Math.random() - 0.5) * vw * 0.28;
+          const columns = isMobile ? 4 : 7;
+          const rowCount = Math.ceil(secondaryArray.length / columns);
+          const column = secondaryIndex % columns;
+          const row = Math.floor(secondaryIndex / columns);
+          const rowProgress = rowCount > 1 ? row / (rowCount - 1) : 0.5;
+          const rowOffset = row % 2 === 0 ? 0 : 0.48;
+          const baseX =
+            ((column + 0.5 + rowOffset) / columns - 0.5) * vw * 1.18;
+          const jitterX = (Math.random() - 0.5) * vw * 0.06;
           const offsetX = baseX + jitterX;
-          // y minimum 은 작게 — secondary 가 viewport 바로 아래에 대기하다가
-          // 스크롤 시 즉시 위로 치고 올라옴. random Y 로 살짝 흩어 둠.
-          const offsetY = Math.random() * vh * 0.55;
+          const offsetY =
+            vh * (0.08 + rowProgress * 0.78) +
+            (Math.random() - 0.5) * vh * 0.12;
+          const driftMultiplier = 1.45 + (column % 4) * 0.16;
           tl.fromTo(
             letter,
             {
@@ -143,7 +160,7 @@ export function LetterCollision() {
             },
             {
               x: offsetX,
-              y: offsetY + (1 - speed) * vh * driftBase * 1.6,
+              y: offsetY + (1 - speed) * vh * driftBase * driftMultiplier,
               rotation,
               ease: "power2.out",
             },
@@ -190,7 +207,7 @@ export function LetterCollision() {
   return (
     <div
       ref={rootRef}
-      className="relative select-none font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]"
+      className="relative isolate select-none font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]"
       style={{
         fontFamily: "var(--font-pretendard), var(--font-sans)",
         fontSize: "clamp(64px, 13vw, 188px)",
@@ -206,7 +223,7 @@ export function LetterCollision() {
         </span>
         <span aria-hidden className="flex flex-wrap items-baseline justify-start">
           <LetterDisplay word={PRIMARY_LINE_3_PARTS[0]} />
-          <LetterDisplay word={PRIMARY_LINE_3_PARTS[1]} highlight />
+          <LetterDisplay word={PRIMARY_LINE_3_PARTS[1]} priority />
           <LetterDisplay word={PRIMARY_LINE_3_PARTS[2]} />
         </span>
       </h1>
@@ -217,7 +234,7 @@ export function LetterCollision() {
       */}
       <div
         aria-hidden
-        className="absolute left-0 right-0 top-full pointer-events-none"
+        className="absolute left-0 right-0 top-full z-0 pointer-events-none"
       >
         {SECONDARY_LINES.map((line, idx) => (
           <span
