@@ -5,7 +5,10 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { LetterDisplay } from "./LetterDisplay";
 
-const LINES = ["웹개발과", "마케팅 둘 다", "하는 김현입니다."] as const;
+// hero 첫 화면에 보이는 메인 헤드라인 (좌하단 anchor)
+const PRIMARY_LINES = ["웹개발과", "마케팅 둘 다", "하는 김현입니다."] as const;
+// hero 아래에 숨겨져 있다가 스크롤 시 letter explosion 으로 위로 떠올라 보임
+const SECONDARY_LINES = ["글을 쓰고", "코드를 짓습니다"] as const;
 
 // ±60° 회전 — 글자가 강하게 흩어지는 느낌
 const ROTATION_RANGE = 120;
@@ -105,26 +108,50 @@ export function LetterCollision() {
     return () => ctx.revert();
   }, []);
 
+  const allLines = [...PRIMARY_LINES, ...SECONDARY_LINES];
+
   return (
-    <h1
+    <div
       ref={rootRef}
-      aria-label={LINES.join(" ")}
-      className="select-none font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]"
+      className="relative select-none font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]"
       style={{
         fontFamily: "var(--font-pretendard), var(--font-sans)",
         fontSize: "clamp(64px, 13vw, 188px)",
         lineHeight: 0.96,
       }}
     >
-      {LINES.map((line, idx) => (
-        <span
-          key={idx}
-          aria-hidden
-          className="flex flex-wrap items-baseline justify-start"
-        >
-          <LetterDisplay word={line} />
-        </span>
-      ))}
-    </h1>
+      <h1
+        aria-label={allLines.join(" ")}
+        className="m-0 p-0 font-inherit"
+      >
+        {PRIMARY_LINES.map((line, idx) => (
+          <span
+            key={idx}
+            aria-hidden
+            className="flex flex-wrap items-baseline justify-start"
+          >
+            <LetterDisplay word={line} />
+          </span>
+        ))}
+      </h1>
+
+      {/*
+        Secondary 라인 — hero 첫 화면 아래에 깔려 있어 처음엔 안 보임.
+        스크롤 시 모든 .letter 가 위로 떠오르면서 함께 viewport 로 진입.
+      */}
+      <div
+        aria-hidden
+        className="absolute left-0 right-0 top-full mt-[0.4em]"
+      >
+        {SECONDARY_LINES.map((line, idx) => (
+          <span
+            key={idx}
+            className="flex flex-wrap items-baseline justify-start"
+          >
+            <LetterDisplay word={line} />
+          </span>
+        ))}
+      </div>
+    </div>
   );
 }
