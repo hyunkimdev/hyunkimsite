@@ -7,9 +7,12 @@ import { LetterDisplay } from "./LetterDisplay";
 
 const LINES = ["웹개발과", "마케팅 둘 다", "하는 김현입니다."] as const;
 
-const ROTATION_RANGE = 60; // ±30°
-const SPEED_MIN = 0.8;
-const SPEED_RANGE = 0.7;
+// ±60° 회전 — 글자가 강하게 흩어지는 느낌
+const ROTATION_RANGE = 120;
+// 대칭 speed range — (1 - speed) 가 음수/양수 모두 큰 값을 가져서 위/아래로
+// 동등하게 흩어짐. 1.0 을 중심으로 ±0.8.
+const SPEED_MIN = 0.2;
+const SPEED_RANGE = 1.6;
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
@@ -46,30 +49,26 @@ export function LetterCollision() {
 
     const letters = root.querySelectorAll<HTMLElement>(".letter");
     const isMobile = window.innerWidth < 768;
-    // pin end 시점에 letter 가 viewport 밖으로 거의 빠져나가도록 큰 drift.
-    // 그래야 unpin 으로 hero 가 위로 밀려나는 순간 letter 가 멈춘 듯이 보이지 않음.
-    const driftBase = isMobile ? 1.1 : 1.8;
+    // viewport 3.6 배 거리. 살짝만 스크롤해도 letter 가 화면 전체에 흩뿌려지고,
+    // pin 이 끝나는 시점엔 이미 viewport 한참 밖이라 멈춤이 안 보임.
+    const driftBase = isMobile ? 2.2 : 3.6;
 
-    // 단일 ScrollTrigger 로 hero 를 pin 하고, 그 안에서 모든 letter 를 tween.
     const ctx = gsap.context(() => {
+      // 단일 ScrollTrigger 에 pin + scrub timeline 통합.
+      // (분리하면 두 번째 trigger 가 pin-spacer 뒤부터 측정되는 quirk 발생)
       const tl = gsap.timeline({
         scrollTrigger: {
           trigger: heroSection,
           start: "top top",
-          // pin 동안 추가 100vh 만큼 스크롤이 letter 흩어짐에 소모됨
           end: "+=100%",
           pin: true,
           pinSpacing: true,
-          // scrub: true — scroll 진행과 letter 진행을 1:1 즉시 동기화
-          // (지연이 있으면 unpin 직전에 letter 가 '완료된' 상태로 멈추는
-          // 듯한 어색함이 보임)
           scrub: true,
           invalidateOnRefresh: true,
         },
       });
 
       letters.forEach((letter) => {
-        // SSR/CSR HTML 일치 유지 — speed 는 mount 시점에 부여
         const speed = randomSpeed();
         letter.dataset.speed = speed.toFixed(3);
         const rotation = randomRotation() * (isMobile ? 0.6 : 1);
@@ -79,16 +78,16 @@ export function LetterCollision() {
           {
             y: () => (1 - speed) * window.innerHeight * driftBase,
             rotation,
-            // 끝에서 가속 — unpin 직전까지 letter 가 계속 빠르게 움직이는
-            // 인상을 줌 (정지하는 듯 보이지 않게)
-            ease: "power1.in",
+            // power2.out — 처음에 강한 폭발, 후반은 감속 (멈추지는 않음).
+            // drift 가 매우 커서 progress 0.5 만 되어도 letter 들은 거의
+            // viewport 밖.
+            ease: "power2.out",
           },
-          0, // 모든 letter 가 동시에 시작
+          0,
         );
       });
 
-      // layout 완료 후 ScrollTrigger 가 정확한 값을 잡도록 refresh.
-      // font 로딩 / image decode 까지 기다리려면 2단계 refresh + load 이벤트.
+      // layout 완료 후 ScrollTrigger 가 정확한 값을 잡도록 다단계 refresh
       const refreshNow = () => ScrollTrigger.refresh();
       requestAnimationFrame(() => {
         requestAnimationFrame(refreshNow);
@@ -98,7 +97,6 @@ export function LetterCollision() {
       } else {
         window.addEventListener("load", refreshNow, { once: true });
       }
-      // Pretendard 변동 폰트 로딩 완료 시점에 다시
       if (document.fonts?.ready) {
         document.fonts.ready.then(() => ScrollTrigger.refresh());
       }
