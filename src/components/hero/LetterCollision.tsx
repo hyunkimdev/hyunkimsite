@@ -112,17 +112,22 @@ export function LetterCollision() {
 
       letters.forEach((letter) => {
         const isSecondary = letter.dataset.secondary === "true";
-        const speed = isSecondary ? randomSecondarySpeed() : randomSpeed();
+        const isPeriod = letter.textContent === ".";
+        let speed = isSecondary ? randomSecondarySpeed() : randomSpeed();
+        // 마침표는 항상 빠른 그룹에 — primary 끝에서 한 발 먼저 치고 빠짐
+        if (isPeriod && !isSecondary) {
+          speed = 2.2 + Math.random() * 0.5;
+        }
         letter.dataset.speed = speed.toFixed(3);
         const rotation = randomRotation() * (isMobile ? 0.6 : 1);
 
         if (isSecondary) {
-          // viewport 폭에 균등 분포 + 약간의 jitter — random 만 쓰면 한쪽으로
-          // 쏠릴 수 있어 index 기반 spacing 을 깐다.
+          // viewport 폭에 균등 분포 + jitter — center 를 살짝 우측으로 옮겨
+          // 초반 스크롤에서도 우측이 비지 않도록.
           const secondaryIndex = secondaryArray.indexOf(letter);
           const t = (secondaryIndex + 0.5) / secondaryArray.length;
-          const baseX = (t - 0.5) * vw * 0.96;
-          const jitterX = (Math.random() - 0.5) * vw * 0.18;
+          const baseX = (t - 0.5) * vw * 0.98 + vw * 0.06;
+          const jitterX = (Math.random() - 0.5) * vw * 0.28;
           const offsetX = baseX + jitterX;
           // y minimum 은 작게 — secondary 가 viewport 바로 아래에 대기하다가
           // 스크롤 시 즉시 위로 치고 올라옴.
