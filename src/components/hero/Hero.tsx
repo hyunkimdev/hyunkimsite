@@ -15,7 +15,7 @@ export function Hero() {
       {/* letters anchored bottom-left — bypass container padding to sit
           very close to the viewport edge. nav stays inside container. */}
       <div className="relative flex-1 flex flex-col justify-end">
-        <div className="pl-4 sm:pl-5 md:pl-6 pb-8 md:pb-12">
+        <div className="pl-4 sm:pl-5 md:pl-6 pb-20 md:pb-32">
           <LetterCollision />
         </div>
       </div>
