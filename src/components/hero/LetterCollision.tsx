@@ -5,10 +5,10 @@ import { gsap } from "gsap";
 import { ScrollTrigger } from "gsap/ScrollTrigger";
 import { LetterDisplay } from "./LetterDisplay";
 
-// hero 첫 화면에 보이는 메인 헤드라인. 마지막 줄은 "김현" 강조를 위해 세 토막으로.
-const PRIMARY_LINE_1 = "웹개발과";
-const PRIMARY_LINE_2 = "마케팅 둘 다";
-const PRIMARY_LINE_3_PARTS = ["하는 ", "김현", "입니다."] as const; // 가운데 토막만 accent
+// hero 첫 화면에 보이는 메인 헤드라인 (2줄). 각 줄을 세 토막으로 나눠
+// 가운데 토막("&", "김현")만 accent 컬러를 입힌다.
+const PRIMARY_LINE_1_PARTS = ["웹개발", "&", "마케팅"] as const; // & accent
+const PRIMARY_LINE_2_PARTS = ["다 하는 ", "김현", "입니다."] as const; // 김현 accent
 // 화면 밖에서 시작 — 마운트 시점에 viewport 전체에 random 분포됨.
 // 글자 수가 많을수록 viewport 가 더 풍부하게 채워짐.
 const SECONDARY_LINES = [
@@ -31,10 +31,9 @@ const SPEED_RANGE = 0.6; // primary → 1.3 ~ 1.9
 const SECONDARY_SPEED_BANDS = [1.5, 1.78, 2.06, 2.36, 2.68] as const;
 const PRIORITY_NAME_SPEEDS = [1.4, 1.24] as const; // 김이 현보다 더 빠르게 위로
 const PRIORITY_ROTATION_RANGE = 34;
-// 일반 primary letter 는 레퍼런스처럼 일부가 "무작위로" 아래로 떨어진다.
-// 손으로 글자를 집지 않고, 매 로딩마다 어떤 글자가 내려갈지 달라진다.
-// (김현·마침표는 의도된 연출이라 제외)
-const DOWN_PRIMARY_CHANCE = 0.3; // ~30% 가 아래로 — 레퍼런스(0.8~1.5)와 비슷한 비율
+// 일반 primary letter 가 무작위로 아래로 떨어질 확률.
+// 0 이면 전부 위로 올라간다. (>0 으로 올리면 레퍼런스처럼 일부가 아래로)
+const DOWN_PRIMARY_CHANCE = 0; // 전부 위로
 // secondary letter 중 이 순번들은 speed 가 1 에 아주 가까워 한참 뒤늦게
 // 아주 느리게 위로 올라온다.
 const SLOW_SECONDARY_INDICES: readonly number[] = [5, 21, 38, 52];
@@ -105,11 +104,11 @@ export function LetterCollision() {
       (l) => l.dataset.secondary === "true",
     );
     const ctx = gsap.context(() => {
-      // (A) Pin only — hero 가 0.36 vh 동안만 viewport 에 머무름.
+      // (A) Pin only — hero 가 0.24 vh 동안만 viewport 에 머무름.
       ScrollTrigger.create({
         trigger: heroSection,
         start: "top top",
-        end: "+=36%",
+        end: "+=24%",
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
@@ -123,7 +122,7 @@ export function LetterCollision() {
         scrollTrigger: {
           trigger: document.documentElement,
           start: 0,
-          end: () => window.innerHeight * 1.8,
+          end: () => window.innerHeight * 1.25,
           // 원본 레퍼런스 방식 — 즉시 동기화(true) 대신 0.5s 스무딩.
           // 휠을 굴리면 letter 가 부드럽게 lerp 으로 따라옴.
           scrub: 0.5,
@@ -180,8 +179,11 @@ export function LetterCollision() {
             ((column + 0.5 + rowOffset) / columns - 0.5) * vw * 1.18;
           const jitterX = (Math.random() - 0.5) * vw * 0.06;
           const offsetX = baseX + jitterX;
+          // base 0.5 — 첫 화면(scroll 0)에서 secondary 글자가 viewport
+          // 아래로 완전히 숨도록 시작 위치를 충분히 내린다. jitter·회전
+          // 변동까지 더해도 넘치지 않도록 마진을 넉넉히 잡았다.
           const offsetY =
-            vh * (0.08 + rowProgress * 0.78) +
+            vh * (0.5 + rowProgress * 0.78) +
             (Math.random() - 0.5) * vh * 0.12;
           const driftMultiplier = 1.45 + (column % 4) * 0.16;
           tl.fromTo(
@@ -237,9 +239,8 @@ export function LetterCollision() {
   }, []);
 
   const ariaLabel = [
-    PRIMARY_LINE_1,
-    PRIMARY_LINE_2,
-    PRIMARY_LINE_3_PARTS.join(""),
+    PRIMARY_LINE_1_PARTS.join(""),
+    PRIMARY_LINE_2_PARTS.join(""),
     ...SECONDARY_LINES,
   ].join(" ");
 
@@ -249,21 +250,20 @@ export function LetterCollision() {
       className="relative isolate select-none font-semibold tracking-[-0.02em] text-[var(--color-ink-900)]"
       style={{
         fontFamily: "var(--font-pretendard), var(--font-sans)",
-        fontSize: "clamp(64px, 13vw, 188px)",
+        fontSize: "clamp(56px, 12vw, 165px)",
         lineHeight: 0.96,
       }}
     >
       <h1 aria-label={ariaLabel} className="m-0 p-0 font-inherit">
         <span aria-hidden className="flex flex-wrap items-baseline justify-start">
-          <LetterDisplay word={PRIMARY_LINE_1} />
+          <LetterDisplay word={PRIMARY_LINE_1_PARTS[0]} />
+          <LetterDisplay word={PRIMARY_LINE_1_PARTS[1]} highlight gapEm={0.16} />
+          <LetterDisplay word={PRIMARY_LINE_1_PARTS[2]} />
         </span>
         <span aria-hidden className="flex flex-wrap items-baseline justify-start">
-          <LetterDisplay word={PRIMARY_LINE_2} />
-        </span>
-        <span aria-hidden className="flex flex-wrap items-baseline justify-start">
-          <LetterDisplay word={PRIMARY_LINE_3_PARTS[0]} />
-          <LetterDisplay word={PRIMARY_LINE_3_PARTS[1]} priority highlight />
-          <LetterDisplay word={PRIMARY_LINE_3_PARTS[2]} />
+          <LetterDisplay word={PRIMARY_LINE_2_PARTS[0]} />
+          <LetterDisplay word={PRIMARY_LINE_2_PARTS[1]} priority highlight />
+          <LetterDisplay word={PRIMARY_LINE_2_PARTS[2]} />
         </span>
       </h1>
 
