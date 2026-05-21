@@ -24,12 +24,21 @@ const SECONDARY_LINES = [
 ] as const;
 
 const ROTATION_RANGE = 120; // ±60°
-// 모든 speed > 1 → (1 - speed) 항상 음수 → letter 무조건 위로
+// drift 부호 규칙: speed > 1 → (1 - speed) 음수 → 위로, speed < 1 → 아래로.
+// 1 에 가까울수록 더 천천히 움직인다.
 const SPEED_MIN = 1.3;
 const SPEED_RANGE = 0.6; // primary → 1.3 ~ 1.9
 const SECONDARY_SPEED_BANDS = [1.5, 1.78, 2.06, 2.36, 2.68] as const;
-const PRIORITY_NAME_SPEEDS = [1.28, 1.24] as const; // 김이 현보다 아주 살짝 빠르게
+const PRIORITY_NAME_SPEEDS = [1.28, 1.24] as const; // 김이 현보다 살짝 빠르게 (위로)
 const PRIORITY_ROTATION_RANGE = 34;
+// primary letter 중 이 순번(김현·마침표 제외)들은 speed < 1 → 흐름을 거슬러
+// 아래로, 1 에 가까운 speed 라 아주 천천히 떨어진다.
+const DOWN_PRIMARY_INDICES: readonly number[] = [2, 7, 10, 13];
+const DOWN_PRIMARY_SPEED = 0.84; // 0.84~0.90 → 느리게 아래로
+// secondary letter 중 이 순번들은 speed 가 1 에 아주 가까워 한참 뒤늦게
+// 아주 느리게 위로 올라온다.
+const SLOW_SECONDARY_INDICES: readonly number[] = [5, 21, 38, 52];
+const SLOW_SECONDARY_SPEED = 1.06; // 1.06~1.12 → 아주 느린 상승
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
@@ -84,6 +93,12 @@ export function LetterCollision() {
     const secondaryArray = Array.from(letters).filter(
       (l) => l.dataset.secondary === "true",
     );
+    // 김현(priority)·마침표 포함, secondary 가 아닌 모든 primary letter.
+    const primaryArray = Array.from(letters).filter(
+      (l) =>
+        l.dataset.secondary !== "true" &&
+        l.dataset.priorityLetter === undefined,
+    );
 
     const ctx = gsap.context(() => {
       // (A) Pin only — hero 가 0.44 vh 동안만 viewport 에 머무름.
@@ -121,20 +136,36 @@ export function LetterCollision() {
         const isPriority = priorityLetterIndex !== undefined;
         const isPeriod = letter.textContent === ".";
         const secondaryIndex = secondaryArray.indexOf(letter);
+        const primaryIndex = primaryArray.indexOf(letter);
+        const isDownPrimary =
+          !isPriority && DOWN_PRIMARY_INDICES.includes(primaryIndex);
+        const isSlowSecondary =
+          isSecondary && SLOW_SECONDARY_INDICES.includes(secondaryIndex);
         let speed = isSecondary
           ? speedFromBand(SECONDARY_SPEED_BANDS, secondaryIndex, 0.12)
           : randomSpeed();
         if (isPriority) {
           speed = priorityNameSpeed(Number(priorityLetterIndex));
         }
-        // 마침표는 항상 빠른 그룹에 — primary 끝에서 한 발 먼저 치고 빠짐
+        // 마침표는 빠른 그룹에 — primary 끝에서 한 발 먼저 치고 빠짐.
+        // 다만 너무 튀지 않게 속도는 살짝 낮춤.
         if (isPeriod && !isSecondary && !isPriority) {
-          speed = 2.2 + Math.random() * 0.5;
+          speed = 1.95 + Math.random() * 0.4;
+        }
+        // 몇 글자는 흐름을 거슬러 천천히 아래로 떨어진다.
+        if (isDownPrimary) {
+          speed = DOWN_PRIMARY_SPEED + Math.random() * 0.06;
+        }
+        // 몇몇 secondary 글자는 1 에 가까운 speed 로 아주 느리게 올라온다.
+        if (isSlowSecondary) {
+          speed = SLOW_SECONDARY_SPEED + Math.random() * 0.06;
         }
         letter.dataset.speed = speed.toFixed(3);
         const rotation = isPriority
           ? Math.random() * PRIORITY_ROTATION_RANGE - PRIORITY_ROTATION_RANGE / 2
-          : randomRotation() * (isMobile ? 0.6 : 1);
+          : isDownPrimary
+            ? Math.random() * 28 - 14
+            : randomRotation() * (isMobile ? 0.6 : 1);
 
         if (isSecondary) {
           const columns = isMobile ? 4 : 7;
