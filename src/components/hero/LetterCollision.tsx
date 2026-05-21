@@ -39,6 +39,9 @@ const DOWN_PRIMARY_CHANCE = 0.3; // ~30% 가 아래로 — 레퍼런스(0.8~1.5)
 // 아주 느리게 위로 올라온다.
 const SLOW_SECONDARY_INDICES: readonly number[] = [5, 21, 38, 52];
 const SLOW_SECONDARY_SPEED = 1.06; // 1.06~1.12 → 아주 느린 상승
+// 글자 모션은 스크롤 구간 앞 70% 안에서 끝나고, 나머지 30% 는 정지 구간.
+// (power3.out 감속이 70% 직전에 부드럽게 속도를 0 으로 떨어뜨림)
+const MOTION_PORTION = 0.7;
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
@@ -192,7 +195,8 @@ export function LetterCollision() {
               x: offsetX,
               y: offsetY + (1 - speed) * vh * driftBase * driftMultiplier,
               rotation,
-              ease: "power2.out",
+              ease: "power3.out",
+              duration: MOTION_PORTION,
             },
             0,
           );
@@ -202,12 +206,17 @@ export function LetterCollision() {
             {
               y: () => (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "power2.out",
+              ease: "power3.out",
+              duration: MOTION_PORTION,
             },
             0,
           );
         }
       });
+
+      // 앞 70% 구간에서 모션 종료 → 빈 트윈으로 타임라인을 1.0 까지 채워
+      // 나머지 30% 스크롤 동안 글자가 정지 상태를 유지하게 한다.
+      tl.to({}, { duration: 1 - MOTION_PORTION });
 
       // layout/font 안정화 후 ScrollTrigger 가 정확한 값을 잡도록 다단계 refresh
       const refreshNow = () => ScrollTrigger.refresh();
