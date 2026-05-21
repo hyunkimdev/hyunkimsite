@@ -2,6 +2,7 @@ import type { Metadata, Viewport } from "next";
 import { Inter, JetBrains_Mono } from "next/font/google";
 import localFont from "next/font/local";
 import "./globals.css";
+import { Preloader } from "@/components/preloader/Preloader";
 
 const inter = Inter({
   subsets: ["latin"],
@@ -47,7 +48,10 @@ export default function RootLayout({
       lang="ko"
       className={`${inter.variable} ${jbMono.variable} ${pretendard.variable}`}
     >
-      <body>{children}</body>
+      <body>
+        <Preloader />
+        {children}
+      </body>
     </html>
   );
 }

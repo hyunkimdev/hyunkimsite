@@ -24,12 +24,24 @@ const SECONDARY_LINES = [
 ] as const;
 
 const ROTATION_RANGE = 120; // ±60°
-// 모든 speed > 1 → (1 - speed) 항상 음수 → letter 무조건 위로
+// drift 부호 규칙: speed > 1 → (1 - speed) 음수 → 위로, speed < 1 → 아래로.
+// 1 에 가까울수록 더 천천히 움직인다.
 const SPEED_MIN = 1.3;
 const SPEED_RANGE = 0.6; // primary → 1.3 ~ 1.9
 const SECONDARY_SPEED_BANDS = [1.5, 1.78, 2.06, 2.36, 2.68] as const;
-const PRIORITY_NAME_SPEEDS = [1.28, 1.24] as const; // 김이 현보다 아주 살짝 빠르게
+const PRIORITY_NAME_SPEEDS = [1.4, 1.24] as const; // 김이 현보다 더 빠르게 위로
 const PRIORITY_ROTATION_RANGE = 34;
+// 일반 primary letter 는 레퍼런스처럼 일부가 "무작위로" 아래로 떨어진다.
+// 손으로 글자를 집지 않고, 매 로딩마다 어떤 글자가 내려갈지 달라진다.
+// (김현·마침표는 의도된 연출이라 제외)
+const DOWN_PRIMARY_CHANCE = 0.3; // ~30% 가 아래로 — 레퍼런스(0.8~1.5)와 비슷한 비율
+// secondary letter 중 이 순번들은 speed 가 1 에 아주 가까워 한참 뒤늦게
+// 아주 느리게 위로 올라온다.
+const SLOW_SECONDARY_INDICES: readonly number[] = [5, 21, 38, 52];
+const SLOW_SECONDARY_SPEED = 1.06; // 1.06~1.12 → 아주 느린 상승
+// 글자 모션은 스크롤 구간 앞 70% 안에서 끝나고, 나머지 30% 는 정지 구간.
+// (power3.out 감속이 70% 직전에 부드럽게 속도를 0 으로 떨어뜨림)
+const MOTION_PORTION = 0.7;
 
 function randomRotation() {
   return Math.random() * ROTATION_RANGE - ROTATION_RANGE / 2;
@@ -42,6 +54,14 @@ function speedFromBand(bands: readonly number[], index: number, jitter = 0.08) {
 
 function randomSpeed() {
   return SPEED_MIN + Math.random() * SPEED_RANGE;
+}
+
+// 일반 primary letter 의 속도. 대부분 위로(1.3~1.9), 일부는 무작위로 아래로.
+function randomPrimaryMotion() {
+  if (Math.random() < DOWN_PRIMARY_CHANCE) {
+    return 0.76 + Math.random() * 0.17; // 0.76~0.93 → speed < 1 → 아래로
+  }
+  return randomSpeed();
 }
 
 function priorityNameSpeed(index: number) {
@@ -84,13 +104,12 @@ export function LetterCollision() {
     const secondaryArray = Array.from(letters).filter(
       (l) => l.dataset.secondary === "true",
     );
-
     const ctx = gsap.context(() => {
-      // (A) Pin only — hero 가 0.44 vh 동안만 viewport 에 머무름.
+      // (A) Pin only — hero 가 0.36 vh 동안만 viewport 에 머무름.
       ScrollTrigger.create({
         trigger: heroSection,
         start: "top top",
-        end: "+=44%",
+        end: "+=36%",
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
@@ -104,7 +123,7 @@ export function LetterCollision() {
         scrollTrigger: {
           trigger: document.documentElement,
           start: 0,
-          end: () => window.innerHeight * 2.2,
+          end: () => window.innerHeight * 1.8,
           // 원본 레퍼런스 방식 — 즉시 동기화(true) 대신 0.5s 스무딩.
           // 휠을 굴리면 letter 가 부드럽게 lerp 으로 따라옴.
           scrub: 0.5,
@@ -121,20 +140,34 @@ export function LetterCollision() {
         const isPriority = priorityLetterIndex !== undefined;
         const isPeriod = letter.textContent === ".";
         const secondaryIndex = secondaryArray.indexOf(letter);
-        let speed = isSecondary
-          ? speedFromBand(SECONDARY_SPEED_BANDS, secondaryIndex, 0.12)
-          : randomSpeed();
-        if (isPriority) {
+        const isSlowSecondary =
+          isSecondary && SLOW_SECONDARY_INDICES.includes(secondaryIndex);
+
+        let speed: number;
+        if (isSecondary) {
+          // 몇몇 secondary 글자는 1 에 가까운 speed 로 아주 느리게 올라온다.
+          speed = isSlowSecondary
+            ? SLOW_SECONDARY_SPEED + Math.random() * 0.06
+            : speedFromBand(SECONDARY_SPEED_BANDS, secondaryIndex, 0.12);
+        } else if (isPriority) {
           speed = priorityNameSpeed(Number(priorityLetterIndex));
-        }
-        // 마침표는 항상 빠른 그룹에 — primary 끝에서 한 발 먼저 치고 빠짐
-        if (isPeriod && !isSecondary && !isPriority) {
-          speed = 2.2 + Math.random() * 0.5;
+        } else if (isPeriod) {
+          // 마침표는 빠른 그룹에 — primary 끝에서 한 발 먼저 치고 빠짐
+          speed = 1.95 + Math.random() * 0.4;
+        } else {
+          // 일반 primary — 레퍼런스처럼 일부가 무작위로 아래로
+          speed = randomPrimaryMotion();
         }
         letter.dataset.speed = speed.toFixed(3);
+
+        // speed < 1 인 일반 primary = 흐름을 거슬러 아래로 떨어지는 글자
+        const isDownPrimary =
+          !isSecondary && !isPriority && !isPeriod && speed < 1;
         const rotation = isPriority
           ? Math.random() * PRIORITY_ROTATION_RANGE - PRIORITY_ROTATION_RANGE / 2
-          : randomRotation() * (isMobile ? 0.6 : 1);
+          : isDownPrimary
+            ? Math.random() * 28 - 14
+            : randomRotation() * (isMobile ? 0.6 : 1);
 
         if (isSecondary) {
           const columns = isMobile ? 4 : 7;
@@ -162,7 +195,8 @@ export function LetterCollision() {
               x: offsetX,
               y: offsetY + (1 - speed) * vh * driftBase * driftMultiplier,
               rotation,
-              ease: "power2.out",
+              ease: "power3.out",
+              duration: MOTION_PORTION,
             },
             0,
           );
@@ -172,12 +206,17 @@ export function LetterCollision() {
             {
               y: () => (1 - speed) * vh * driftBase * 1.6,
               rotation,
-              ease: "power2.out",
+              ease: "power3.out",
+              duration: MOTION_PORTION,
             },
             0,
           );
         }
       });
+
+      // 앞 70% 구간에서 모션 종료 → 빈 트윈으로 타임라인을 1.0 까지 채워
+      // 나머지 30% 스크롤 동안 글자가 정지 상태를 유지하게 한다.
+      tl.to({}, { duration: 1 - MOTION_PORTION });
 
       // layout/font 안정화 후 ScrollTrigger 가 정확한 값을 잡도록 다단계 refresh
       const refreshNow = () => ScrollTrigger.refresh();
@@ -223,7 +262,7 @@ export function LetterCollision() {
         </span>
         <span aria-hidden className="flex flex-wrap items-baseline justify-start">
           <LetterDisplay word={PRIMARY_LINE_3_PARTS[0]} />
-          <LetterDisplay word={PRIMARY_LINE_3_PARTS[1]} priority />
+          <LetterDisplay word={PRIMARY_LINE_3_PARTS[1]} priority highlight />
           <LetterDisplay word={PRIMARY_LINE_3_PARTS[2]} />
         </span>
       </h1>
