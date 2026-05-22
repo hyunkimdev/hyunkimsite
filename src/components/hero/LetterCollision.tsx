@@ -28,7 +28,7 @@ const ROTATION_RANGE = 120; // ±60°
 // 1 에 가까울수록 더 천천히 움직인다.
 const SPEED_MIN = 1.3;
 const SPEED_RANGE = 0.6; // primary → 1.3 ~ 1.9
-const SECONDARY_SPEED_BANDS = [1.5, 1.78, 2.06, 2.36, 2.68] as const;
+const SECONDARY_SPEED_BANDS = [1.4, 1.6, 1.8, 2.0, 2.2] as const;
 const PRIORITY_NAME_SPEEDS = [1.4, 1.24] as const; // 김이 현보다 더 빠르게 위로
 const PRIORITY_ROTATION_RANGE = 34;
 // 일반 primary letter 가 무작위로 아래로 떨어질 확률.
@@ -38,6 +38,10 @@ const DOWN_PRIMARY_CHANCE = 0; // 전부 위로
 // 아주 느리게 위로 올라온다.
 const SLOW_SECONDARY_INDICES: readonly number[] = [5, 21, 38, 52];
 const SLOW_SECONDARY_SPEED = 1.06; // 1.06~1.12 → 아주 느린 상승
+// secondary letter 중 이 순번들은 중간 속도 — 위로 올라오되 화면을 다
+// 벗어나지 않고 스크롤이 끝날 무렵 viewport 안쯤에 남는다.
+const LINGER_SECONDARY_INDICES: readonly number[] = [6, 13, 20, 27, 34];
+const LINGER_SECONDARY_SPEED = 1.24; // 끝날 때 화면에 남는 글자
 // 글자 모션은 스크롤 구간 앞 70% 안에서 끝나고, 나머지 30% 는 정지 구간.
 // (power3.out 감속이 70% 직전에 부드럽게 속도를 0 으로 떨어뜨림)
 const MOTION_PORTION = 0.7;
@@ -104,11 +108,11 @@ export function LetterCollision() {
       (l) => l.dataset.secondary === "true",
     );
     const ctx = gsap.context(() => {
-      // (A) Pin only — hero 가 0.24 vh 동안만 viewport 에 머무름.
+      // (A) Pin only — hero 가 0.20 vh 동안만 viewport 에 머무름.
       ScrollTrigger.create({
         trigger: heroSection,
         start: "top top",
-        end: "+=24%",
+        end: "+=20%",
         pin: true,
         pinSpacing: true,
         invalidateOnRefresh: true,
@@ -122,7 +126,7 @@ export function LetterCollision() {
         scrollTrigger: {
           trigger: document.documentElement,
           start: 0,
-          end: () => window.innerHeight * 1.25,
+          end: () => window.innerHeight * 1.05,
           // 원본 레퍼런스 방식 — 즉시 동기화(true) 대신 0.5s 스무딩.
           // 휠을 굴리면 letter 가 부드럽게 lerp 으로 따라옴.
           scrub: 0.5,
@@ -141,13 +145,20 @@ export function LetterCollision() {
         const secondaryIndex = secondaryArray.indexOf(letter);
         const isSlowSecondary =
           isSecondary && SLOW_SECONDARY_INDICES.includes(secondaryIndex);
+        const isLingerSecondary =
+          isSecondary && LINGER_SECONDARY_INDICES.includes(secondaryIndex);
 
         let speed: number;
         if (isSecondary) {
-          // 몇몇 secondary 글자는 1 에 가까운 speed 로 아주 느리게 올라온다.
-          speed = isSlowSecondary
-            ? SLOW_SECONDARY_SPEED + Math.random() * 0.06
-            : speedFromBand(SECONDARY_SPEED_BANDS, secondaryIndex, 0.12);
+          if (isSlowSecondary) {
+            // 1 에 가까운 speed 로 아주 느리게 올라온다.
+            speed = SLOW_SECONDARY_SPEED + Math.random() * 0.06;
+          } else if (isLingerSecondary) {
+            // 중간 속도 — 스크롤이 끝날 무렵 화면 안에 남는다.
+            speed = LINGER_SECONDARY_SPEED + Math.random() * 0.06;
+          } else {
+            speed = speedFromBand(SECONDARY_SPEED_BANDS, secondaryIndex, 0.12);
+          }
         } else if (isPriority) {
           speed = priorityNameSpeed(Number(priorityLetterIndex));
         } else if (isPeriod) {
